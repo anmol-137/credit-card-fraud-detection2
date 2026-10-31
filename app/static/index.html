@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fraud Desk: credit card fraud detection</title>
+  <meta name="description" content="Score a credit card transaction for fraud with a Random Forest model served by FastAPI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <a class="skip" href="#score">Skip to the scoring form</a>
+
+  <header class="bar">
+    <a class="brand" href="/">Fraud Desk</a>
+    <nav aria-label="Sections">
+      <a href="#score">Score one</a>
+      <a href="#batch">Score a file</a>
+      <a href="#model">Model</a>
+      <a href="#api">API</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero: the live scoring desk -->
+    <section class="desk" id="score" aria-labelledby="desk-title">
+      <div class="desk-form">
+        <h1 id="desk-title">Check a card transaction for fraud</h1>
+        <p class="lede">Choose a real transaction the model has never seen, or enter your own values. The model returns a fraud score and the features that look unusual.</p>
+
+        <div class="samples" role="group" aria-labelledby="samples-label">
+          <p id="samples-label" class="field-title">Start from a sample</p>
+          <div id="sample-buttons" class="sample-row"><span class="muted">Loading samples…</span></div>
+        </div>
+
+        <form id="tx-form" novalidate>
+          <div class="pair">
+            <label for="f-Amount">Amount
+              <input id="f-Amount" name="Amount" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 149.62">
+            </label>
+            <label for="f-Hour">Hour of day (0 to 23)
+              <input id="f-Hour" name="Hour" type="number" inputmode="numeric" min="0" max="23" step="1" placeholder="e.g. 14">
+            </label>
+          </div>
+
+          <details class="vbox">
+            <summary>Anonymised features V1 to V28 <span id="v-count" class="muted">(0 of 28 filled)</span></summary>
+            <p class="muted small">The bank anonymised these as PCA components, so they have no readable meaning. Samples fill them for you.</p>
+            <div id="v-grid" class="v-grid"></div>
+          </details>
+
+          <details class="vbox">
+            <summary>Paste a transaction as JSON</summary>
+            <textarea id="json-in" rows="4" spellcheck="false" placeholder='{"V1": -1.36, "V2": -0.07, ... "Amount": 149.62, "Hour": 0}'></textarea>
+            <button type="button" id="json-apply" class="ghost">Fill the form from JSON</button>
+          </details>
+
+          <p id="form-error" class="error" role="alert" hidden></p>
+          <div class="actions">
+            <button type="submit" id="score-btn" class="primary">Score transaction</button>
+            <button type="button" id="clear-btn" class="ghost">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="slip-wrap" aria-live="polite" aria-label="Result">
+        <div class="slip" id="slip" data-state="empty">
+          <p class="slip-title">Transaction check</p>
+          <div id="slip-empty" class="slip-empty">
+            <p>Nothing scored yet.</p>
+            <p class="muted">Pick a sample on the left to see a result here.</p>
+          </div>
+          <div id="slip-body" hidden>
+            <dl class="slip-meta">
+              <div><dt>Amount</dt><dd id="r-amount">-</dd></div>
+              <div><dt>Hour</dt><dd id="r-hour">-</dd></div>
+            </dl>
+            <p class="verdict" id="r-verdict">-</p>
+            <p class="score-line">Fraud score <strong id="r-score">-</strong></p>
+            <div class="scale" role="img" id="r-scale" aria-label="Score scale">
+              <div class="scale-fill" id="r-fill"></div>
+              <div class="scale-tick" id="r-tick"><span id="r-tick-label"></span></div>
+            </div>
+            <div class="scale-ends"><span>0 (typical)</span><span>1 (very unusual)</span></div>
+            <div class="signals">
+              <p class="field-title">Unusual signals</p>
+              <ul id="r-signals"></ul>
+            </div>
+            <p class="actual" id="r-actual" hidden></p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Batch scoring -->
+    <section class="band" id="batch" aria-labelledby="batch-title">
+      <div class="band-text">
+        <h2 id="batch-title">Score a whole file</h2>
+        <p>Upload a CSV with columns <code>V1</code> to <code>V28</code>, <code>Amount</code> and <code>Hour</code> (or <code>Time</code>, as in the original dataset). Up to 5,000 rows and 5 MB. If the file has a <code>Class</code> column, results are compared with it.</p>
+        <button type="button" id="sample-csv" class="ghost">Download a sample CSV</button>
+      </div>
+      <div class="band-tool">
+        <label class="drop" for="csv-in" id="drop">
+          <span class="drop-main">Choose a CSV file</span>
+          <span class="muted small" id="drop-name">or drop it here</span>
+          <input id="csv-in" type="file" accept=".csv,text/csv">
+        </label>
+        <p id="batch-error" class="error" role="alert" hidden></p>
+        <div id="batch-out" hidden>
+          <p id="batch-summary" class="batch-summary"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Row</th><th scope="col" class="num">Amount</th><th scope="col" class="num">Fraud score</th><th scope="col">Result</th><th scope="col" id="th-actual" hidden>Actual</th></tr></thead>
+              <tbody id="batch-rows"></tbody>
+            </table>
+          </div>
+          <p class="muted small" id="batch-note"></p>
+          <button type="button" id="dl-results" class="ghost">Download all results as CSV</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Model -->
+    <section class="model" id="model" aria-labelledby="model-title">
+      <h2 id="model-title">How well does the model work?</h2>
+      <p id="model-lede" class="lede"></p>
+      <div class="table-wrap">
+        <table id="metrics-table">
+          <caption class="muted small" id="metrics-caption"></caption>
+          <thead><tr><th scope="col">Model</th><th scope="col" class="num">Precision</th><th scope="col" class="num">Recall</th><th scope="col" class="num">F1</th><th scope="col" class="num">PR-AUC</th><th scope="col" class="num">ROC-AUC</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="plots">
+        <figure class="plot-wide"><img src="/static/img/pr_roc.png" alt="Precision-recall and ROC curves for both models" loading="lazy" width="1320" height="504"><figcaption>Random Forest stays high on the precision-recall curve; Isolation Forest drops quickly.</figcaption></figure>
+        <figure><img src="/static/img/confusion.png" alt="Confusion matrix for the Random Forest on the test set" loading="lazy" width="528" height="456"><figcaption>Test-set confusion matrix at the chosen threshold.</figcaption></figure>
+        <figure><img src="/static/img/importance.png" alt="Top features by importance in the Random Forest" loading="lazy" width="624" height="504"><figcaption>Features the forest relies on most.</figcaption></figure>
+      </div>
+      <h3>What to keep in mind</h3>
+      <ul class="notes">
+        <li>Fraud is about 0.17% of transactions, so accuracy is meaningless here. Judge the model on precision, recall and PR-AUC.</li>
+        <li>The fraud score is a model score, not a calibrated probability. The cut-off was chosen on a validation set to balance precision and recall.</li>
+        <li>The test set holds only a few dozen fraud cases, so the numbers carry real uncertainty.</li>
+        <li>The data is two days of European card transactions from 2013. This is a learning project, not a system to make real payment decisions.</li>
+      </ul>
+    </section>
+
+    <!-- API -->
+    <section class="band" id="api" aria-labelledby="api-title">
+      <div class="band-text">
+        <h2 id="api-title">Use it from your own code</h2>
+        <p>Everything on this page calls the same JSON API. Interactive docs are at <a href="/docs">/docs</a>.</p>
+        <ul class="plain">
+          <li><code>GET /api/model</code> returns the model card</li>
+          <li><code>POST /api/predict</code> scores one transaction</li>
+          <li><code>POST /api/predict/batch</code> scores a CSV upload</li>
+          <li><code>GET /api/health</code> reports status</li>
+        </ul>
+      </div>
+      <div class="band-tool">
+        <pre id="curl" tabindex="0" aria-label="Example curl command"></pre>
+        <button type="button" id="copy-curl" class="ghost">Copy the command</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Data: <a href="https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud">Credit Card Fraud Detection</a> by the Machine Learning Group, ULB, and Worldline (Open Database License). Demo project for learning; not for real payment decisions.</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

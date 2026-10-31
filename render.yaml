@@ -1,0 +1,7 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repository.
+services:
+  - type: web
+    name: fraud-desk
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health

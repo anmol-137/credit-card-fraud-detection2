@@ -1,0 +1,120 @@
+{
+  "deployed_model": "Random Forest",
+  "trained_at": "2026-10-31T09:36:39+00:00",
+  "dataset": {
+    "rows_raw": 284807,
+    "rows_clean": 283726,
+    "duplicates_removed": 1081,
+    "fraud_cases": 473,
+    "fraud_rate_pct": 0.1667,
+    "test_rows": 56746,
+    "test_fraud_cases": 95
+  },
+  "threshold": 0.4329583496556891,
+  "metrics": {
+    "Random Forest": {
+      "precision": 0.9125,
+      "recall": 0.7684210526315789,
+      "f1": 0.8342857142857143,
+      "roc_auc": 0.9772808395633839,
+      "pr_auc": 0.841867650267838,
+      "mcc": 0.8371219594865973,
+      "tp": 73,
+      "fp": 7,
+      "fn": 22,
+      "tn": 56644,
+      "threshold": 0.4329583496556891
+    },
+    "Isolation Forest": {
+      "precision": 0.14423076923076922,
+      "recall": 0.3157894736842105,
+      "f1": 0.19801980198019803,
+      "roc_auc": 0.948964713773808,
+      "pr_auc": 0.11783855847009948,
+      "mcc": 0.21150399046028073,
+      "tp": 30,
+      "fp": 178,
+      "fn": 65,
+      "tn": 56473,
+      "threshold": 0.6237249669489677
+    }
+  },
+  "features": [
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V9",
+    "V10",
+    "V11",
+    "V12",
+    "V13",
+    "V14",
+    "V15",
+    "V16",
+    "V17",
+    "V18",
+    "V19",
+    "V20",
+    "V21",
+    "V22",
+    "V23",
+    "V24",
+    "V25",
+    "V26",
+    "V27",
+    "V28",
+    "Amount",
+    "Hour"
+  ],
+  "top_features": [
+    {
+      "feature": "V14",
+      "importance": 0.1976
+    },
+    {
+      "feature": "V10",
+      "importance": 0.1271
+    },
+    {
+      "feature": "V4",
+      "importance": 0.1066
+    },
+    {
+      "feature": "V17",
+      "importance": 0.0927
+    },
+    {
+      "feature": "V12",
+      "importance": 0.0825
+    },
+    {
+      "feature": "V3",
+      "importance": 0.0736
+    },
+    {
+      "feature": "V11",
+      "importance": 0.0724
+    },
+    {
+      "feature": "V16",
+      "importance": 0.0375
+    },
+    {
+      "feature": "V7",
+      "importance": 0.0257
+    },
+    {
+      "feature": "V2",
+      "importance": 0.0245
+    }
+  ],
+  "versions": {
+    "python": "3.13.9",
+    "scikit_learn": "1.8.0"
+  }
+}

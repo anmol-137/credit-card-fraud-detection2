@@ -1,0 +1,9 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+pandas>=2.2
+numpy>=2.0
+joblib>=1.4
+# The saved model is a pickle, so scikit-learn must match the version it was trained with.
+# If you cannot install this version, retrain with `python ml/train.py` and keep the version you have.
+scikit-learn==1.8.0
